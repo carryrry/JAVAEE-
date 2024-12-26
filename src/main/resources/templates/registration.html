@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册页面</title>
+</head>
+<body>
+<form id="registration-form">
+    <label for="username">用户名:</label>
+    <input type="text" id="username" name="username" required />
+
+    <label for="password">密码:</label>
+    <input type="password" id="password" name="password" required />
+
+    <label for="email">邮箱:</label>
+    <input type="email" id="email" name="email" required />
+
+    <!-- 移除角色选择部分 -->
+    <div id="extra-fields"></div>
+
+    <button type="submit">注册</button>
+</form>
+
+<script>
+    window.onload = function() {
+        // 默认选中教师角色
+        const extraFields = document.getElementById("extra-fields");
+        extraFields.innerHTML = `
+            <label for="courses">选择课程:</label>
+            <select id="courses" name="courses" multiple>
+                <!-- 动态加载课程选项 -->
+            </select>
+        `;
+
+        // 发起请求获取课程数据
+        fetch("/api/courses")
+            .then(response => response.json())  // 确保获取到的响应是 JSON
+            .then(courses => {
+                console.log(courses); // 输出返回的课程数据，确认数据格式
+
+                const coursesSelect = document.getElementById("courses");
+                coursesSelect.innerHTML = '';  // 清空现有的课程选项
+
+                // 判断课程数据是否为空
+                if (courses && courses.length > 0) {
+                    courses.forEach(course => {
+                        const option = document.createElement("option");
+                        option.value = course.courseId;  // 使用 courseId 作为选项的值
+                        // 合并课程名和课程时间显示
+                        option.textContent = `${course.courseName} - ${course.courseTime}`;  // 显示课程名和课程时间
+                        coursesSelect.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement("option");
+                    option.textContent = "没有可用课程";
+                    coursesSelect.appendChild(option);
+                }
+            })
+            .catch(error => {
+                console.error("无法加载课程数据:", error);
+                alert("无法加载课程数据，请稍后再试！");
+            });
+
+        // 提交表单时处理用户注册
+        document.getElementById("registration-form").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+
+            fetch("/api/users/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            })
+                .then(response => response.text())
+                .then(message => alert(message));
+        });
+    };
+</script>
+</body>
+</html>

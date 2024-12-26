@@ -1,0 +1,12 @@
+package cn.edu.zjut.javaeeteachers;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class JavaEETeachersApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(JavaEETeachersApplication.class, args);
+    }
+}
