@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>注册页面</title>
+    <style>
+        /* 简单的样式 */
+        .message {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            display: none; /* 默认隐藏 */
+        }
+        .message.success {
+            border-color: green;
+            background-color: #d4edda;
+            color: green;
+        }
+        .message.error {
+            border-color: red;
+            background-color: #f8d7da;
+            color: red;
+        }
+    </style>
 </head>
 <body>
 <form id="registration-form">
@@ -16,11 +36,13 @@
     <label for="email">邮箱:</label>
     <input type="email" id="email" name="email" required />
 
-    <!-- 移除角色选择部分 -->
     <div id="extra-fields"></div>
 
     <button type="submit">注册</button>
 </form>
+
+<!-- 消息提示区域 -->
+<div id="message" class="message"></div>
 
 <script>
     window.onload = function() {
@@ -33,22 +55,28 @@
             </select>
         `;
 
-        // 发起请求获取课程数据
-        fetch("/api/courses")
-            .then(response => response.json())  // 确保获取到的响应是 JSON
-            .then(courses => {
-                console.log(courses); // 输出返回的课程数据，确认数据格式
+        // 消息提示函数
+        const showMessage = (text, type) => {
+            const messageDiv = document.getElementById("message");
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = "block"; // 显示消息
+            setTimeout(() => {
+                messageDiv.style.display = "none"; // 自动隐藏
+            }, 3000); // 3秒后隐藏
+        };
 
+        // 加载课程数据
+        fetch("/api/courses")
+            .then(response => response.json())
+            .then(courses => {
                 const coursesSelect = document.getElementById("courses");
                 coursesSelect.innerHTML = '';  // 清空现有的课程选项
-
-                // 判断课程数据是否为空
                 if (courses && courses.length > 0) {
                     courses.forEach(course => {
                         const option = document.createElement("option");
                         option.value = course.courseId;  // 使用 courseId 作为选项的值
-                        // 合并课程名和课程时间显示
-                        option.textContent = `${course.courseName} - ${course.courseTime}`;  // 显示课程名和课程时间
+                        option.textContent = `${course.courseName} - ${course.courseTime}`;
                         coursesSelect.appendChild(option);
                     });
                 } else {
@@ -59,7 +87,7 @@
             })
             .catch(error => {
                 console.error("无法加载课程数据:", error);
-                alert("无法加载课程数据，请稍后再试！");
+                showMessage("无法加载课程数据，请稍后再试！", "error");
             });
 
         // 提交表单时处理用户注册
@@ -68,14 +96,32 @@
 
             const formData = new FormData(this);
             const data = Object.fromEntries(formData);
+            const selectedCourses = Array.from(document.getElementById("courses").selectedOptions).map(option => option.value);
+
+            const role = 'TEACHER';  // 默认选中角色为教师(教师登录功能)
+            data.role = role;
+
+            data.courses = selectedCourses; // 添加课程数据
+
+
+            console.log(data); // 输出调试
 
             fetch("/api/users/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),
             })
-                .then(response => response.text())
-                .then(message => alert(message));
+                .then(response => {
+                    if (response.ok) return response.text();
+                    return response.text().then(text => {
+                        throw new Error(text); // 如果返回非 2xx 状态，抛出错误信息
+                    });
+                })
+                .then(message => showMessage(message, "success"))
+                .catch(error => {
+                    console.error("提交失败:", error);
+                    showMessage(`注册失败：${responseText || '未知错误，请稍后再试'}`, "error");
+                });
         });
     };
 </script>

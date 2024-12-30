@@ -1,10 +1,14 @@
 package cn.edu.zjut.javaeeteachers.model;
 
+import cn.edu.zjut.javaeeteachers.Converter.RoleConverter;
 import jakarta.persistence.*;
 import lombok.Data;
 
-@Entity
+import java.util.List;
+
 @Data
+@Entity
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,46 +22,17 @@ public class User {
 
     private String email;
 
+    @Convert(converter = RoleConverter.class)
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role;
 
-    public Integer getUserId() {
-        return userId;
-    }
+    @ManyToMany
+    @JoinTable(
+            name = "teacher_courses",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "course_id")
+    )
+    private List<Course> teacher_courses; // 教师的课程列表
 
-    public void setUserId(Integer userId) {
-        this.userId = userId;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
 }

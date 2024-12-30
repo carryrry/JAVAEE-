@@ -1,41 +1,87 @@
 package cn.edu.zjut.javaeeteachers.service;
 
-import cn.edu.zjut.javaeeteachers.model.*;
-import cn.edu.zjut.javaeeteachers.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import cn.edu.zjut.javaeeteachers.model.Role;
+import cn.edu.zjut.javaeeteachers.model.Teacher_Course;
+import cn.edu.zjut.javaeeteachers.model.User;
+import cn.edu.zjut.javaeeteachers.model.UserDto;
+import cn.edu.zjut.javaeeteachers.repository.TeacherCourseRepository;
+import cn.edu.zjut.javaeeteachers.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+
 
 @Service
 public class UserService {
-    @Autowired
-    private UserRepository userRepository;
 
-    @Autowired
-    private CourseRepository courseRepository;
+    private final UserRepository userRepository;
+    private final TeacherCourseRepository teacherCourseRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public UserService(UserRepository userRepository, TeacherCourseRepository teacherCourseRepository) {
+        this.userRepository = userRepository;
+        this.teacherCourseRepository = teacherCourseRepository;
+    }
 
-    public void registerUser(String username, String password, String email, Role role, List<String> courseNames) {
-        if (userRepository.existsByUsername(username)) {
-            throw new IllegalArgumentException("用户名已存在");
+
+    // 用户注册
+    @Transactional
+    public void registerUser(UserDto userDto) {
+        // Step 1: 检查用户名是否已存在
+        Optional<User> existingUser = userRepository.findByUsername(userDto.getUsername());
+        if (existingUser.isPresent()) {
+            throw new RuntimeException("用户名已存在，请选择其他用户名！");
         }
 
+        // Step 2: 创建用户实体
         User user = new User();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setEmail(email);
-        user.setRole(role);
-        userRepository.save(user);
+        user.setUsername(userDto.getUsername());
+        user.setPassword(userDto.getPassword());  // 这里的密码没有加密
+        user.setEmail(userDto.getEmail());
+        user.setRole(userDto.getRole());
 
-        for (String courseName : courseNames) {
-            Course course = courseRepository.findByCourseName(courseName)
-                    .orElseThrow(() -> new RuntimeException("课程不存在: " + courseName));
-            // 根据角色将课程关联逻辑写入
+        // Step 3: 保存用户到数据库
+        userRepository.save(user);  // 注意：此处保存用户后会返回保存的用户对象
+
+        // Step 4: 如果角色为 TEACHER，关联课程（教师注册功能）
+        if (Role.TEACHER.equals(userDto.getRole()) && userDto.getCourses() != null) {
+            List<Teacher_Course> teacherCourses = userDto.getCourses().stream()
+                    .map(courseId -> new Teacher_Course(user.getUserId(), courseId))  // 使用 user.getUserId()
+                    .toList();
+            teacherCourseRepository.saveAll(teacherCourses); // 批量保存课程关联
         }
     }
-}
 
+    // 用户登录
+    @Transactional
+    public User loginUser(UserDto userDto) {
+        // 通过用户名从数据库查找用户
+        Optional<User> existingUser = userRepository.findByUsername(userDto.getUsername());
+
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+
+            // 检查密码是否匹配，假设密码是以明文保存
+            if (user.getPassword().equals(userDto.getPassword())) {
+                try {
+                    // 直接使用 user.getRole()，因为它已经是枚举类型，没必要再转换
+                    Role userRole = user.getRole(); // 获取枚举类型
+                    if (userRole == Role.TEACHER) {
+                        return user; // 登录成功，返回用户信息
+                    } else {
+                        throw new RuntimeException("用户角色不匹配！");
+                    }
+                } catch (IllegalArgumentException e) {
+                    throw new RuntimeException("无效的用户角色：" + user.getRole());
+                }
+            } else {
+                throw new RuntimeException("用户名或密码错误！");
+            }
+        } else {
+            throw new RuntimeException("用户名不存在！");
+        }
+    }
+
+
+}
