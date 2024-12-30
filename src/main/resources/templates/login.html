@@ -1,64 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <title>登录</title>
 </head>
 <body>
-<div class="login-container">
-    <h2>Login</h2>
-    <!-- 登录表单 -->
-    <form id="loginForm">
-        <div>
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-        </div>
-        <div>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        <button type="submit">Login</button>
-    </form>
+<h2>用户登录</h2>
+<form action="/login" method="post">
+    <!-- 用户名 -->
+    <label for="username">用户名：</label>
+    <input type="text" id="username" name="username" required><br><br>
 
-    <!-- 错误信息 -->
-    <div id="error-message" style="color: red; display: none;">
-        <p>Invalid username or password!</p>
-    </div>
-</div>
+    <!-- 密码 -->
+    <label for="password">密码：</label>
+    <input type="password" id="password" name="password" required><br><br>
 
-<script>
-    // 如果发生登录失败，显示错误信息
-    const loginForm = document.getElementById('loginForm');
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        try {
-            const response = await fetch('/api/users/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
-            });
-
-            if (response.ok) {
-                window.location.href = "/success.html"; // 登录成功，跳转到首页
-            } else {
-                const errorData = await response.json();
-                const errorMessage = errorData.error || "Login failed. Please try again.";
-                document.getElementById('error-message').innerText = errorMessage;
-                document.getElementById('error-message').style.display = 'block'; // 显示错误信息
-            }
-        } catch (error) {
-            console.error('Login failed', error);
-            document.getElementById('error-message').innerText = "A network error occurred. Please try again.";
-            document.getElementById('error-message').style.display = 'block'; // 显示错误信息
-        }
-    });
-</script>
+    <button type="submit">登录</button>
+</form>
+<p th:text="${error}"></p>
+<p>没有账号？<a href="/register">点击注册</a></p>
 </body>
 </html>
